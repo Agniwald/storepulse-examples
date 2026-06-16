@@ -1,0 +1,304 @@
+openapi: 3.1.0
+info:
+  title: Google Play Data — Apps, Reviews, Search Rankings, Charts
+  description: >
+    Real-time Google Play Store data: full app metadata, paginated reviews,
+    keyword search rankings, and top charts. Public data only. All responses
+    carry an `X-Cache: HIT|MISS` header.
+  version: 0.1.0
+servers:
+  - url: https://storepulse.p.rapidapi.com
+    description: RapidAPI gateway
+
+security:
+  - proxySecret: []
+
+paths:
+  /v1/app:
+    get:
+      summary: Full app metadata
+      operationId: getApp
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Lang"
+      responses:
+        "200":
+          description: App metadata
+          headers:
+            X-Cache: { $ref: "#/components/headers/XCache" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/App" }
+              example:
+                id: com.spotify.music
+                title: "Spotify: Music and Podcasts"
+                developer: Spotify AB
+                score: 4.33
+                ratings: 35759791
+                installs: "1,000,000,000+"
+                free: true
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/AppNotFound" }
+        "502": { $ref: "#/components/responses/Upstream" }
+        "503": { $ref: "#/components/responses/CircuitOpen" }
+
+  /v1/reviews:
+    get:
+      summary: Paginated app reviews
+      operationId: getReviews
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Lang"
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [newest, rating, helpfulness]
+            default: newest
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque pagination token from a previous response's next_cursor.
+          schema: { type: string }
+      responses:
+        "200":
+          description: A page of reviews
+          headers:
+            X-Cache: { $ref: "#/components/headers/XCache" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reviews]
+                properties:
+                  reviews:
+                    type: array
+                    items: { $ref: "#/components/schemas/Review" }
+                  next_cursor:
+                    type: string
+                    description: Pass as `cursor` to fetch the next page; absent on the last page.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/AppNotFound" }
+        "502": { $ref: "#/components/responses/Upstream" }
+        "503": { $ref: "#/components/responses/CircuitOpen" }
+
+  /v1/search:
+    get:
+      summary: Ranked app search (keyword rank tracking)
+      operationId: getSearch
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+          example: spotify
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Lang"
+      responses:
+        "200":
+          description: Ranked results
+          headers:
+            X-Cache: { $ref: "#/components/headers/XCache" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/SearchResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/Upstream" }
+        "503": { $ref: "#/components/responses/CircuitOpen" }
+
+  /v1/charts:
+    get:
+      summary: Top-chart entries with rank position
+      operationId: getCharts
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema: { type: string, default: APPLICATION }
+          example: APPLICATION
+        - name: collection
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [top_free, top_paid, top_grossing]
+            default: top_free
+        - $ref: "#/components/parameters/Country"
+        - $ref: "#/components/parameters/Lang"
+      responses:
+        "200":
+          description: Ranked chart
+          headers:
+            X-Cache: { $ref: "#/components/headers/XCache" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [charts]
+                properties:
+                  charts:
+                    type: array
+                    items: { $ref: "#/components/schemas/ChartEntry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/Upstream" }
+        "503": { $ref: "#/components/responses/CircuitOpen" }
+
+components:
+  securitySchemes:
+    proxySecret:
+      type: apiKey
+      in: header
+      name: X-RapidAPI-Proxy-Secret
+
+  parameters:
+    Id:
+      name: id
+      in: query
+      required: true
+      description: Play package id.
+      schema: { type: string }
+      example: com.spotify.music
+    Country:
+      name: country
+      in: query
+      required: false
+      description: ISO-3166 alpha-2, lowercase. Affects ratings, prices, rankings.
+      schema: { type: string, default: us }
+    Lang:
+      name: lang
+      in: query
+      required: false
+      description: BCP-47 primary language tag.
+      schema: { type: string, default: en }
+
+  headers:
+    XCache:
+      description: Whether the response was served from cache.
+      schema: { type: string, enum: [HIT, MISS] }
+
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AppNotFound:
+      description: Package id not found in the given country
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Upstream:
+      description: Upstream blocked (upstream_blocked) or format changed (upstream_changed)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    CircuitOpen:
+      description: Breaker open — serving cache only; retry later
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, status]
+          properties:
+            code:
+              type: string
+              enum: [bad_request, unauthorized, app_not_found, upstream_blocked, upstream_changed, rate_limited, internal]
+            message: { type: string }
+            status: { type: integer }
+    App:
+      type: object
+      required: [id, title, developer, score, free]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        description: { type: string }
+        developer: { type: string }
+        developer_id: { type: string }
+        icon: { type: string }
+        header_image: { type: string }
+        screenshots:
+          type: array
+          items: { type: string }
+        score: { type: number }
+        ratings: { type: integer }
+        histogram:
+          type: array
+          items: { type: integer }
+          description: Five buckets, index 0 = 1-star … index 4 = 5-star.
+        installs: { type: string }
+        min_installs: { type: integer }
+        price: { type: number }
+        currency: { type: string }
+        free: { type: boolean }
+        offers_iap: { type: boolean }
+        iap_range: { type: string }
+        version: { type: string }
+        updated: { type: string, format: date-time }
+        released: { type: string }
+        genre: { type: string }
+        genre_id: { type: string }
+        content_rating: { type: string }
+        privacy_policy: { type: string }
+        ad_supported: { type: boolean }
+        available: { type: boolean }
+    Review:
+      type: object
+      required: [id, author, rating, text, date]
+      properties:
+        id: { type: string }
+        author: { type: string }
+        rating: { type: integer }
+        text: { type: string }
+        date: { type: string, format: date-time }
+        version: { type: string }
+        thumbs_up: { type: integer }
+        reply_text: { type: string }
+        reply_date: { type: string, format: date-time }
+    SearchResult:
+      type: object
+      required: [rank, app_id, title]
+      properties:
+        rank: { type: integer }
+        app_id: { type: string }
+        title: { type: string }
+        developer: { type: string }
+        icon: { type: string }
+        summary: { type: string }
+        score: { type: number }
+        price: { type: number }
+        free: { type: boolean }
+        currency: { type: string }
+    ChartEntry:
+      type: object
+      required: [rank, app_id, title]
+      properties:
+        rank: { type: integer }
+        app_id: { type: string }
+        title: { type: string }
+        developer: { type: string }
+        icon: { type: string }
+        summary: { type: string }
+        score: { type: number }
+        price: { type: number }
+        free: { type: boolean }
+        currency: { type: string }
