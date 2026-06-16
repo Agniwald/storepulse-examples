@@ -1,0 +1,7 @@
+# Keep LF in the repo for scripts so shebangs work on Linux/macOS.
+*.py text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+LICENSE text eol=lf
