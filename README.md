@@ -9,7 +9,7 @@ reviews, search rankings, and top charts as clean JSON.
 > account you already have.
 >
 > **Get a key:** subscribe (free tier available) on RapidAPI →
-> https://rapidapi.com/ (search "StorePulse" / "Google Play Data").
+> https://rapidapi.com/egosumkira/api/storepulse
 
 ## Setup
 

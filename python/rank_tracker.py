@@ -7,7 +7,7 @@ the rank over time.
 
 StorePulse — Google Play app metadata, reviews, search rankings & charts as a
 clean, cached JSON API. Stop maintaining your own Play scraper:
-https://rapidapi.com/  (search "StorePulse")
+https://rapidapi.com/egosumkira/api/storepulse
 
 Usage:
     export RAPIDAPI_KEY=...
