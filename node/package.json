@@ -1,0 +1,17 @@
+{
+  "name": "storepulse-examples-node",
+  "version": "1.0.0",
+  "description": "Node examples for the StorePulse API (Google Play data: apps, reviews, search rankings, charts).",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "app": "node app_metadata.js com.spotify.music",
+    "search": "node search.js spotify",
+    "rank": "node rank_tracker.js spotify com.spotify.music",
+    "reviews": "node reviews_to_csv.js com.zhiliaoapp.musically reviews.csv 3",
+    "charts": "node chart_snapshot.js top_free APPLICATION"
+  },
+  "license": "MIT"
+}
